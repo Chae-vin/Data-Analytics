@@ -63,10 +63,11 @@ with col2:
         plot_top_10_countries(df, selected_score, selected_score, height=350)
 
     #Heatmap
+    st.title("Correlation between Numerical Values")
     sns.set_theme(style="darkgrid")
     plt.style.use('dark_background')
     st.markdown("""
-    <div style="display: flex; margin-top: 60px">
+    <div style="display: flex;">
     </div>
     """, unsafe_allow_html=True)
     # Your code for generating the heatmap
@@ -96,7 +97,7 @@ with col3:
             color_continuous_scale="portland_r",
         )
         title_world=f'AI {selected_score} Across the Globe'
-        st.markdown(f"<h2 style='font-size: 36px;'>{title_world}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='font-size: 40px;'>{title_world}</h2>", unsafe_allow_html=True)
         fig.update_layout(
             showlegend=True,
             width=500,
@@ -114,12 +115,11 @@ with col3:
     <div style="display: flex;">
     </div>
     """, unsafe_allow_html=True)
-    title = 'Number of countries by region, cluster, and income group'
-    st.markdown(f"<h2 style='font-size: 24px;'>{title}</h2>", unsafe_allow_html=True)
+    title = 'Region - Cluster - Income Group'
+    st.markdown(f"<h2 style='font-size: 40px;'>{title}</h2>", unsafe_allow_html=True)
     agg_data = df[['Region', 'Cluster', 'Income group']].groupby(['Region', 'Cluster', 'Income group']).size().reset_index(name='Count')
     path = ['Region', 'Cluster', 'Income group']
     fig = px.sunburst(agg_data, values='Count', path=path, color="Region", height=585,
         color_discrete_sequence=px.colors.qualitative.Pastel
     )  
     st.plotly_chart(fig, use_container_width=True)
-
