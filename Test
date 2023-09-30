@@ -13,62 +13,75 @@ st.title("AI Global Index")
 
 df = pd.read_csv("AI_Global_Index.csv")
 
+col1, col2, col3 = st.columns([1, 1, 1])
 
+def plot_donut_chart(df, filter_column, height=250, width=250):
+    dfg = df[filter_column].value_counts().reset_index()
+    dfg.columns = [filter_column, 'Quantity']
+    fig = px.pie(dfg, values='Quantity', names=filter_column, hole=0.4, height=height, width=width)
+    fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+    )
+    fig.update_traces(textinfo='text')
+    fig.data[0].text = dfg['Quantity'].astype(str)
 
-# Sort the DataFrame by 'Total score' column in descending order and select top 10 rows
-top_10_countries = df.sort_values('Total score', ascending=False)[['Country', 'Total score']][:10]
-# Display the table in the sidebar
-st.sidebar.header("Overview")
-st.sidebar.table(top_10_countries.style.background_gradient(cmap='seismic'))
-
-col1, col2 = st.columns(2)
-
-with col1: 
-    st.title("Top 10 Countries")
-    selected_score = st.selectbox('Select Score Category:',
-                                ['Talent', 'Infrastructure', 'Operating Environment',
-                                'Research', 'Development', 'Government Strategy',
-                                'Commercial', 'Total score'])
-    # Function to create and display top 10 bar chart based on selected score category
-    def plot_top_10_countries(df, score_column, score_title):
-        top_10_countries = df.nlargest(10, score_column)
-        fig = px.bar(
-            top_10_countries,
-            x=score_column,
-            y='Country',
-            orientation='h',
-            text=score_column,
-            title=f'Top 10 Countries Based on {score_title}',
-            color='Country'
-        )
-        fig.update_layout(
-            xaxis_title=f'{score_title} Score',
-            yaxis_title='Country',
-            yaxis_categoryorder='total ascending'
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    if "Country" in df.columns:
-        plot_top_10_countries(df, selected_score, selected_score)
-with col2: 
-    st.markdown("""
-    <div style="display: flex;">
-        
-    </div>
-""", unsafe_allow_html=True)
-    title = 'Number of countries by region, cluster, and income group'
-    st.markdown(f"<h2 style='font-size: 30px;'>{title}</h2>", unsafe_allow_html=True)
-    agg_data = df[['Region', 'Cluster', 'Income group']].groupby(['Region', 'Cluster', 'Income group']).size().reset_index(name='Count')
-    path = ['Region', 'Cluster', 'Income group']
-    fig = px.sunburst(agg_data, values='Count', path=path, color="Region", height=700, 
-        color_discrete_sequence=px.colors.qualitative.Pastel
-    )   
     st.plotly_chart(fig, use_container_width=True)
 
+def plot_top_10_countries(df, selected_score, title, height=400):
+    top_10_countries = df.sort_values(selected_score, ascending=False)[['Country', selected_score]][:10]
+    fig = px.bar(
+        top_10_countries,
+        x='Country',
+        y=selected_score,
+        color='Country',
+        labels={'Country': 'Country Name', selected_score: selected_score},
+        title=f'Top 10 Countries by {title}',
+    )
+    fig.update_xaxes(title_text='Country Name')
+    fig.update_yaxes(title_text=selected_score)
+    
+    st.plotly_chart(fig, use_container_width=True)
 
-col3, col4 = st.columns(2)
+with col1:
+    #Overview
+    st.write("Region Distribution")
+    plot_donut_chart(df, 'Region', height=260, width=250)
+    st.write("Cluster Distribution")
+    plot_donut_chart(df, 'Cluster', height=260, width=250)
+    st.write("Income Group Distribution")
+    plot_donut_chart(df, 'Income group', height=260, width=250)
+    st.write("Political Regime")
+    plot_donut_chart(df, 'Political regime', height=260, width=250)
 
+with col2:
+    #Bar Chart
+    st.title("Top 10 Countries")
+    selected_score = st.selectbox('Select Score Category:',
+                                  ['Talent', 'Infrastructure', 'Operating Environment',
+                                   'Research', 'Development', 'Government Strategy',
+                                   'Commercial', 'Total score'])
+    if "Country" in df.columns:
+        plot_top_10_countries(df, selected_score, selected_score, height=350)
+
+    #Heatmap
+    sns.set_theme(style="darkgrid")
+    plt.style.use('dark_background')
+    st.markdown("""
+    <div style="display: flex; margin-top: 60px">
+    </div>
+    """, unsafe_allow_html=True)
+    # Your code for generating the heatmap
+    d = df[['Talent', 'Infrastructure', 'Operating Environment', 'Research', 'Development', 'Government Strategy', 'Commercial', 'Total score']]
+    cor = d.corr()
+    fig, ax = plt.subplots(figsize=(5, 4))
+    mask = np.triu(np.ones_like(cor, dtype=bool))
+    cmap = sns.diverging_palette(230, 20, as_cmap=True)
+    sns.heatmap(cor, mask=mask, cmap=cmap, annot=True, fmt='.2f',
+                square=True, linewidths=.5, cbar_kws={"shrink": .7})
+    # Display the plot
+    st.pyplot(fig, use_container_width=True)
+   
 with col3:
+    #Scatter Geo World Map
     # Function to create scatter_geo plot based on selected score category
     def plot_geo_map(df, selected_score):
         fig = px.scatter_geo(
@@ -81,32 +94,32 @@ with col3:
             range_color=[df[selected_score].min(), df[selected_score].max()],
             projection="natural earth",
             color_continuous_scale="portland_r",
-            #title_world=f'AI {selected_score} Across the Globe'
         )
         title_world=f'AI {selected_score} Across the Globe'
-        st.markdown(f"<h2 style='font-size: 30px;'>{title_world}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='font-size: 36px;'>{title_world}</h2>", unsafe_allow_html=True)
         fig.update_layout(
             showlegend=True,
-            width=700,
+            width=500,
             height=500,
             autosize=False,
             margin=dict(t=40, b=0, l=5, r=5),
             template="plotly_dark",
         )
-        st.plotly_chart(fig)
+        st.plotly_chart(fig, use_container_width=True)
     if "Country" in df.columns:
         plot_geo_map(df, selected_score)
-        
-with col4:
-    sns.set_theme(style="darkgrid")
-    plt.style.use('dark_background')
-    # Your code for generating the heatmap
-    d = df[['Talent', 'Infrastructure', 'Operating Environment', 'Research', 'Development', 'Government Strategy', 'Commercial', 'Total score']]
-    cor = d.corr()
-    fig, ax = plt.subplots(figsize=(10, 8))
-    mask = np.triu(np.ones_like(cor, dtype=bool))
-    cmap = sns.diverging_palette(230, 20, as_cmap=True)
-    sns.heatmap(cor, mask=mask, cmap=cmap, annot=True, fmt='.2f',
-            square=True, linewidths=.5, cbar_kws={"shrink": .5})
-    # Display the plot
-    st.pyplot(fig)
+
+    #Sunburst Chart 
+    st.markdown("""
+    <div style="display: flex;">
+    </div>
+    """, unsafe_allow_html=True)
+    title = 'Number of countries by region, cluster, and income group'
+    st.markdown(f"<h2 style='font-size: 24px;'>{title}</h2>", unsafe_allow_html=True)
+    agg_data = df[['Region', 'Cluster', 'Income group']].groupby(['Region', 'Cluster', 'Income group']).size().reset_index(name='Count')
+    path = ['Region', 'Cluster', 'Income group']
+    fig = px.sunburst(agg_data, values='Count', path=path, color="Region", height=585,
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )  
+    st.plotly_chart(fig, use_container_width=True)
+
